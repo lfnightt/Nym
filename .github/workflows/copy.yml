@@ -1,0 +1,35 @@
+name: Copy nym-vpn-android contents
+on:
+  workflow_dispatch:
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout destination repo
+        uses: actions/checkout@v4
+
+      - name: Clone source sparse
+        run: |
+          git clone --depth 1 --branch develop --filter=blob:none --sparse https://github.com/nymtech/nym-vpn-client.git source
+          cd source
+          git sparse-checkout set nym-vpn-android
+
+      - name: Clean destination except .git and .github
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.github' -exec rm -rf {} +
+
+      - name: Copy contents to root
+        run: |
+          cp -r source/nym-vpn-android/. .
+          rm -rf .github/workflows/copy.yml.bak || true
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Copy contents of nym-vpn-android from nymtech/nym-vpn-client" || echo "No changes"
+          git push
